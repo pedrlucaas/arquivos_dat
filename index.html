@@ -1,0 +1,345 @@
+ 
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>App de Junção de Arquivos .dat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    h1, h2 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 16px;
+    }
+
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    #progressBarContainer {
+      display: none;
+      background-color: #f1f1f1;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      height: 20px;
+      margin-bottom: 10px;
+    }
+
+    #progressBar {
+      background-color: #4CAF50;
+      height: 100%;
+      border-radius: 5px;
+    }
+
+    #progressText {
+      text-align: center;
+      padding: 4px;
+    }
+
+    .merged {
+      margin-left: 10px;
+    }
+
+    .app-container {
+      display: grid;
+      gap: 10px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .instructions {
+      background-color: #f1f1f1;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+    }
+
+    .file-list {
+      background-color: #f1f1f1;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    .controls button {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: #fff;
+    }
+
+    .controls input[type="number"] {
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      width: 60px;
+    }
+
+    .controls input[type="text"] {
+      padding: 5px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    /* Estilos Adicionais */
+    #downloadButton {
+      background-color: #1E90FF;
+    }
+
+    #downloadButton:disabled {
+      background-color: #ccc;
+    }
+
+    #downloadButton:hover:disabled {
+      cursor: not-allowed;
+    }
+
+    /* Estilos Adicionais para a Mensagem de Sucesso */
+    #successMessage {
+      display: none;
+      margin-top: 10px;
+      padding: 5px;
+      background-color: #4CAF50;
+      color: #fff;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <h1>App de Junção de Arquivos .dat</h1>
+    <div class="instructions">
+      <p>Selecione os arquivos .dat que deseja juntar. Clique no botão "Upload de Arquivos" para selecionar vários arquivos ao mesmo tempo. Defina o "Tamanho do Lote" e clique em "Juntar Arquivos" para iniciar o processo. Os arquivos serão combinados em um único arquivo .dat, que você poderá baixar clicando no botão "Baixar Arquivos Combinados".</p>
+    </div>
+    <div class="controls">
+      <input type="file" id="fileInput" multiple>
+      <button id="uploadButton" onclick="uploadFiles()">Upload de Arquivos</button>
+    </div>
+    <div class="controls">
+      <label for="batchSize">Tamanho do Lote:</label>
+      <input type="number" id="batchSize" min="1" value="5">
+      <button id="joinButton" disabled>Juntar Arquivos</button>
+    </div>
+    <div id="progressBarContainer" style="display: none;">
+      <div id="progressBar"></div>
+      <div id="progressText">0%</div>
+    </div>
+    <p id="progressMessage"></p>
+    <h2>Arquivos selecionados:</h2>
+    <ul id="selectedFiles" class="file-list"></ul>
+    <button id="clearButton" onclick="clearSelection()" disabled>Limpar Seleção</button>
+    <div class="controls">
+      <label for="combinedFileName">Nome do Arquivo Combinado:</label>
+      <input type="text" id="combinedFileName" placeholder="combined.dat" oninput="validateFileName()">
+      <span id="fileNameError" style="color: red;"></span>
+    </div>
+    <button id="downloadButton" style="display: none;" onclick="downloadCombinedFiles()" disabled>Baixar Arquivos Combinados</button>
+
+    <!-- Mensagem de Sucesso (Adição) -->
+    <div id="successMessage">Arquivos combinados com sucesso!</div>
+  </div>
+
+  <script>
+    async function uploadFiles() {
+      const fileInput = document.getElementById('fileInput');
+      const files = fileInput.files;
+      if (files.length === 0) {
+        alert('Por favor, selecione os arquivos .dat para fazer o upload.');
+        return;
+      }
+
+      // Validate the files to ensure they are all .dat files
+      for (const file of files) {
+        if (!file.name.toLowerCase().endsWith('.dat')) {
+          alert('Por favor, selecione apenas arquivos .dat.');
+          return;
+        }
+      }
+
+      // Display selected files in the interface
+      const selectedFilesList = document.getElementById('selectedFiles');
+      selectedFilesList.innerHTML = ''; // Clear previous list
+      for (const file of files) {
+        const listItem = document.createElement('li');
+        listItem.innerText = file.name;
+        selectedFilesList.appendChild(listItem);
+      }
+
+      // Enable the "Juntar Arquivos" and "Limpar Seleção" buttons
+      const joinButton = document.getElementById('joinButton');
+      joinButton.disabled = false;
+      const clearButton = document.getElementById('clearButton');
+      clearButton.disabled = false;
+    }
+
+    async function joinFiles() {
+      const fileInput = document.getElementById('fileInput');
+      const files = fileInput.files;
+      if (files.length === 0) {
+        alert('Por favor, faça o upload dos arquivos .dat primeiro.');
+        return;
+      }
+
+      const batchSize = parseInt(document.getElementById('batchSize').value, 10);
+      if (isNaN(batchSize) || batchSize < 1) {
+        alert('Tamanho do lote inválido. Insira um número válido maior que zero.');
+        return;
+      }
+
+      document.getElementById('progressMessage').innerText = 'Processando...';
+      const progressBarContainer = document.getElementById('progressBarContainer');
+      progressBarContainer.style.display = 'block';
+
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+
+      let totalSize = 0;
+      for (const file of files) {
+        totalSize += file.size;
+      }
+
+      let loadedSize = 0;
+      const chunks = [];
+
+      function updateProgress(loaded) {
+        loadedSize += loaded;
+        const percentComplete = (loadedSize / totalSize) * 100;
+        progressBar.style.width = percentComplete + '%';
+        progressText.innerText = Math.round(percentComplete) + '%';
+      }
+
+      async function readAndCombineChunks(file) {
+        try {
+          const data = await readChunks(file, updateProgress);
+          chunks.push(data);
+          const selectedFilesList = document.getElementById('selectedFiles');
+          const listItem = selectedFilesList.children[chunks.length - 1];
+          if (listItem) {
+            listItem.innerHTML += ' <span class="merged">sucesso</span>';
+          }
+
+          if (chunks.length < files.length) {
+            readAndCombineChunks(files[chunks.length]);
+          } else {
+            combineAndDownload(chunks);
+          }
+        } catch (error) {
+          alert('Erro ao ler um dos arquivos. Certifique-se de que todos os arquivos .dat são válidos.');
+          console.error(error);
+        }
+      }
+
+      readAndCombineChunks(files[0]);
+    }
+
+    function combineAndDownload(chunks) {
+      const combinedData = combineChunks(chunks);
+      const combinedFileName = document.getElementById('combinedFileName').value || 'combined.dat';
+
+      const blob = new Blob([combinedData], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = combinedFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      document.getElementById('progressMessage').innerText = 'Arquivos combinados com sucesso!';
+      const progressBarContainer = document.getElementById('progressBarContainer');
+      progressBarContainer.style.display = 'none';
+      const progressBar = document.getElementById('progressBar');
+      progressBar.style.width = '0%';
+      const progressText = document.getElementById('progressText');
+      progressText.innerText = '0%';
+      const downloadButton = document.getElementById('downloadButton');
+      downloadButton.disabled = false;
+      downloadButton.style.display = 'block';
+
+      // Mostrar a mensagem de sucesso
+      const successMessage = document.getElementById('successMessage');
+      successMessage.style.display = 'block';
+    }
+
+    function combineChunks(chunks) {
+      const totalSize = chunks.reduce((total, chunk) => total + chunk.length, 0);
+      const combinedData = new Uint8Array(totalSize);
+      let offset = 0;
+      for (const chunk of chunks) {
+        combinedData.set(chunk, offset);
+        offset += chunk.length;
+      }
+      return combinedData;
+    }
+
+    async function readChunks(file, progressCallback) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const data = new Uint8Array(event.target.result);
+          progressCallback(data.length);
+          resolve(data);
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function downloadFile(data, filename) {
+      const blob = new Blob([data], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function clearSelection() {
+      const fileInput = document.getElementById('fileInput');
+      fileInput.value = '';
+      const selectedFilesList = document.getElementById('selectedFiles');
+      selectedFilesList.innerHTML = '';
+      const joinButton = document.getElementById('joinButton');
+      joinButton.disabled = true;
+      const clearButton = document.getElementById('clearButton');
+      clearButton.disabled = true;
+    }
+
+    // Função para validar o nome do arquivo combinado
+    function validateFileName() {
+      const combinedFileName = document.getElementById('combinedFileName').value;
+      const fileNameError = document.getElementById('fileNameError');
+      const forbiddenChars = /[\\/:"*?<>|]/; // Verificar se há caracteres inválidos
+      if (forbiddenChars.test(combinedFileName)) {
+        fileNameError.innerText = 'Nome de arquivo inválido';
+        document.getElementById('downloadButton').disabled = true;
+      } else {
+        fileNameError.innerText = '';
+        document.getElementById('downloadButton').disabled = false;
+      }
+    }
+
+    document.getElementById('joinButton').addEventListener('click', joinFiles);
+  </script>
+</body>
+</html>
