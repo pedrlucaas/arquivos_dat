@@ -1,0 +1,33 @@
+ 
+name: Merge .dat Files
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  merge-files:
+    name: Merge Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Merge files in batches
+        run: |
+          batchSize=20 # Defina o tamanho do lote como 20
+          files=$(ls *.dat) # Obtém todos os arquivos .dat no diretório
+
+          # Loop para mesclar os arquivos em lotes
+          for ((i=0; i<$(echo "$files" | wc -w); i+=batchSize)); do
+            batchFiles=$(echo "$files" | tail -n +$((i+1)) | head -n $batchSize)
+            cat $batchFiles > "batch_${i}_combined.dat"
+          done
+
+      - name: Upload merged files as artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: merged-files
+          path: batch_*_combined.dat
