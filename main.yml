@@ -1,4 +1,3 @@
- 
 name: Merge .dat Files
 
 on:
@@ -20,12 +19,9 @@ jobs:
         with:
           node-version: '14' # Altere para a versão desejada do Node.js
 
-      - name: Install dependencies
-        run: npm install # Certifique-se de ter um package.json com as dependências necessárias
-
       - name: Merge files in batches
         run: |
-          batchSize=5 # Defina o tamanho do lote aqui
+          batchSize=20 # Defina o tamanho do lote aqui
           files=$(ls *.dat) # Obtém todos os arquivos .dat no diretório
 
           # Loop para mesclar os arquivos em lotes
@@ -39,3 +35,4 @@ jobs:
         with:
           name: merged-files
           path: batch_*_combined.dat
+          
