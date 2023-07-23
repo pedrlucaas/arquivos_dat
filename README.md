@@ -18,7 +18,7 @@ Este é um aplicativo web simples para juntar vários arquivos .dat em um único
 
 ## Demonstração
 
-Você pode visualizar e utilizar o aplicativo acessando o seguinte link: [App de Junção de Arquivos.dat] (content://pl.solidexplorer2.files/storage/emulated/0/Download/DAT.html)
+Você pode visualizar e utilizar o aplicativo acessando o seguinte link: [App de Junção de Arquivos .dat](link_do_seu_aplicativo)
 
 ## Autor
 
@@ -26,4 +26,4 @@ Você pode visualizar e utilizar o aplicativo acessando o seguinte link: [App de
 
 ## Licença
 
-Este projeto está licenciado sob a Licença [Pedro Lucas Modesto]. Consulte o arquivo LICENSE para obter mais detalhes.
+Este projeto está licenciado sob a Licença [PEDRO LUCAS MODESTO]. Consulte o arquivo LICENSE para obter mais detalhes.
